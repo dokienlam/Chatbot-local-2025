@@ -29,11 +29,11 @@ const upload = multer({ storage: storage });
 // Middleware
 app.use(cors());
 app.use(bodyParser.json({ limit: '10mb' }));
-app.use(express.static('./')); // Phục vụ các file tĩnh
+app.use(express.static('./')); // Phục vụ các file tĩnh từ thư mục hiện tại
 
 // Route chính
 app.get('/', (req, res) => {
-    res.send('Welcome to the ChatBot API! Use /upload to upload audio and /downloads/:filename to download audio.');
+    res.sendFile(path.join(__dirname, 'Lam.html')); // Gửi file Lam.html
 });
 
 // Endpoint để upload audio

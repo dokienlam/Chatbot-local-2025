@@ -33,7 +33,7 @@ app.use(express.static('./')); // Phục vụ các file tĩnh từ thư mục hi
 
 // Route chính
 app.get('/', (req, res) => {
-    res.sendFile(path.join(dirname, 'Lam.html')); // Gửi file Lam.html
+    res.sendFile(path.join(__dirname, 'Lam.html')); // Gửi file Lam.html
 });
 
 // Endpoint để upload audio

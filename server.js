@@ -9,7 +9,7 @@ const app = express();
 const PORT = 3000;
 
 // Kiểm tra và tạo thư mục uploads nếu không tồn tại
-const uploadsDir = path.join(dirname, '/uploads');
+const uploadsDir = path.join(__dirname, '/uploads');
 if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir);
 }

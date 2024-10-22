@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text to Speech</title>
+</head>
+<body>
+    <h1>Chuyển văn bản từ JSON thành giọng nói</h1>
+    <button onclick="readText()">Đọc văn bản</button>
+
+    <script>
+        // Đọc file JSON
+        fetch('du_lieu.json')
+            .then(response => response.json())
+            .then(data => {
+                window.textToRead = data.responese;
+            })
+            .catch(error => console.error('Lỗi khi đọc JSON:', error));
+
+        // Hàm chuyển văn bản thành giọng nói
+        function readText() {
+            if (window.textToRead) {
+                const speech = new SpeechSynthesisUtterance();
+                speech.text = window.textToRead;
+                speech.lang = 'vi-VN';  // Chọn ngôn ngữ tiếng Việt
+                speechSynthesis.speak(speech);
+            } else {
+                alert('Không có văn bản để đọc!');
+            }
+        }
+    </script>
+</body>
+</html>

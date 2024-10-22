@@ -1,97 +1,131 @@
+from Data_Re_processing import *
 from sentence_transformers import util
 import networkx as nx
-from matplotlib import pyplot as plt
-from Data_Re_processing import *
-from transformers import GPT2LMHeadModel, GPT2Tokenizer, AutoModel, AutoTokenizer, AutoModelForCausalLM
-from openai import OpenAI
-import os
-from dotenv import load_dotenv
+from transformers import GPT2LMHeadModel, GPT2Tokenizer, AutoModel, AutoTokenizer, AutoModelForCausalLM, AutoConfig
+import torch
 
-
-def build_graph(sentences, model):
+def build_graph(sentences, model, nlp ):
     graph = nx.Graph()
     
-    for i, sentence in enumerate(sentences):
-        graph.add_node(i, sentence=sentence)
+    for sentence in sentences:
+        entities = extract_entities(sentence, nlp)
+        doc = nlp(sentence)
+        verbs = [token.text for token in doc if token.pos_ == "VERB"]
 
-    sentence_embeddings = model.encode(sentences, convert_to_tensor=True)
+        for entity, label in entities.items():
+            if not graph.has_node(entity):
+                graph.add_node(entity, entity_type=label)
 
-    similarities = util.pytorch_cos_sim(sentence_embeddings, sentence_embeddings)
+        for verb in verbs:
+            if not graph.has_node(verb):
+                graph.add_node(verb, entity_type="VERB")
 
-    for i in range(len(sentences)):
-        for j in range(i + 1, len(sentences)):
-            similarity = similarities[i][j].item()
-            if similarity > 0.5:  
-                graph.add_edge(i, j, weight=similarity)
+        entity_names = list(entities.keys())
+        entity_embeddings = model.encode(entity_names, convert_to_tensor=True)
+        similarities = util.pytorch_cos_sim(entity_embeddings, entity_embeddings)
+
+        for i in range(len(entity_names)):
+            for j in range(i + 1, len(entity_names)):
+                cosine_similarity = similarities[i][j].item()
+                if cosine_similarity > 0.5:  
+                    graph.add_edge(entity_names[i], entity_names[j], weight=cosine_similarity * 0.5)
+
+        for verb in verbs:
+            for entity in entities.keys():
+                graph.add_edge(verb, entity, weight=0.5)  
 
     return graph
 
-def draw_graph(graph):
-    pos = nx.spring_layout(graph) 
-    weights = nx.get_edge_attributes(graph, 'weight')
-    
-    nx.draw(graph, pos, with_labels=True, node_color='lightblue', node_size=2000, font_size=10)
-    nx.draw_networkx_edge_labels(graph, pos, edge_labels=weights)
-    
-    plt.title("Sentence Similarity Graph")
-    plt.show()  
 
-def graph_search(query, document_text, model):
-    sentences = split_sentences(document_text)
-    
-    graph = build_graph(sentences, model)
+def add_to_neo4j(graph, driver):
+    with driver.session() as session:
+        for node in graph.nodes(data=True):
+            entity = node[0]
+            entity_type = node[1].get("entity_type", "Unknown")
+            session.run("MERGE (e:Entity {name: $name, type: $type})", name=entity, type=entity_type)
 
+        for u, v, weight in graph.edges(data=True):
+            session.run("""
+                MATCH (e1:Entity {name: $name1}), (e2:Entity {name: $name2})
+                CREATE (e1)-[:SIMILARITY {weight: $weight}]->(e2)
+            """, name1=u, name2=v, weight=weight['weight'])
+
+def query_entities_from_neo4j(driver):
+    def query_entities(tx):
+        result = tx.run("MATCH (e:Entity) RETURN e.name AS name, e.type AS type")
+        return [(record["name"], record["type"]) for record in result]
+    
+    with driver.session() as session:
+        entities = session.read_transaction(query_entities)
+    return entities
+
+def find_most_similar_entity(query, driver, model):
+    entities = query_entities_from_neo4j(driver)
     query_embedding = model.encode(query, convert_to_tensor=True)
-    sentence_embeddings = model.encode(sentences, convert_to_tensor=True)
+    entity_names = [name for name, _ in entities]
+    entity_embeddings = model.encode(entity_names, convert_to_tensor=True)
     
-    similarities = util.pytorch_cos_sim(query_embedding, sentence_embeddings)[0]
-    
+    similarities = util.pytorch_cos_sim(query_embedding, entity_embeddings)[0]
     best_idx = similarities.argmax().item()
-
-    neighbors = list(graph.neighbors(best_idx))
     
-    best_sentence = sentences[best_idx]
-    related_sentences = [sentences[n] for n in neighbors]
+    best_entity_name = entity_names[best_idx]
+    best_entity_type = entities[best_idx][1]
+    best_similarity_score = similarities[best_idx].item()
 
-    return best_sentence, related_sentences, graph, similarities[best_idx]
+    return best_entity_name, best_entity_type, best_similarity_score
+
+def query_related_entities(entity_name, driver):
+    def query_neighbors(tx, entity_name):
+        result = tx.run("""
+            MATCH (e:Entity {name: $name})-[:SIMILARITY]->(related)
+            RETURN related.name AS related_entity
+        """, name=entity_name)
+        return [record["related_entity"] for record in result]
     
+    with driver.session() as session:
+        related_entities = session.read_transaction(query_neighbors, entity_name)
+    
+    return related_entities
+
+
 def generate_answer(query, context):
-    tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
-    model = GPT2LMHeadModel.from_pretrained('gpt2')
+
+    model_path = "vinai/PhoGPT-4B-Chat"  
     
-
-    # tokenizer = AutoTokenizer.from_pretrained("vinai/PhoGPT-4B", trust_remote_code=True)
-    # model = AutoModelForCausalLM.from_pretrained("vinai/PhoGPT-4B", trust_remote_code=True)
-
-    # model = AutoModel.from_pretrained("openbmb/MiniCPM-Llama3-V-2_5", trust_remote_code=True)
-    # tokenizer = AutoTokenizer.from_pretrained('openbmb/MiniCPM-Llama3-V-2_5', trust_remote_code=True)  # load checkpoint
-     
-    # tokenizer = AutoTokenizer.from_pretrained("openchat/openchat_3.5")    #GPU to run
-    # model = AutoModelForCausalLM.from_pretrained("openchat/openchat_3.5")  #GPU to run
-
+    config = AutoConfig.from_pretrained(model_path, trust_remote_code=True)  
     
-    if tokenizer.pad_token is None:
-        tokenizer.pad_token = tokenizer.eos_token
+    config.init_device = "cuda"
     
-    input_text = f"Query: {query} \nDocument: {context} \nAnswer:"
-    # input_text = f"{query}"
-
-    # input_text = f"Please answer the user's question using information extracted from the document below. Ensure your answer is accurate and relevant to the query. \n\nUser Question: {query} \n\nDocument: {context} \n\nAnswer:"
-
+    model = AutoModelForCausalLM.from_pretrained(model_path, config=config, torch_dtype=torch.float16, trust_remote_code=True)
     
-    inputs = tokenizer(input_text, return_tensors='pt', truncation=True, padding='longest')
+#     model.eval() 
+    
+    tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)  
+    
+#     instruction = f"Dựa vào văn bản sau đây:\n{context}\nHãy trả lời câu hỏi: {query}"
+    instruction = f"\n{query}\n Best relative sentences: {context}"
 
-    outputs = model.generate(
-        input_ids=inputs['input_ids'],
-        attention_mask=inputs['attention_mask'],
-        max_length=400,
+    PROMPT_TEMPLATE = f"### Câu hỏi: {instruction} \n### Trả lời:" 
+
+    input_prompt = PROMPT_TEMPLATE.format_map({"instruction": instruction})  
+    
+    input_ids = tokenizer(input_prompt, return_tensors="pt")
+    
+    outputs = model.generate(  
+        inputs=input_ids["input_ids"].to("cuda"),  
+        attention_mask=input_ids["attention_mask"].to("cuda"),  
+        do_sample=True,  
+        temperature=1,  
         num_return_sequences=1,
-        pad_token_id=tokenizer.pad_token_id,
-        do_sample=True,
-        temperature=0.1,
-        top_k=1,
-        top_p=0.1,
-    )
-    answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
-    key_sentences = answer.split("Answer:")[-1].strip()
-    return answer.strip(), key_sentences
+        top_k=50,  
+        top_p=0.9, 
+        max_new_tokens=2048,  
+        eos_token_id=tokenizer.eos_token_id,  
+        pad_token_id=tokenizer.pad_token_id  
+    )  
+
+    answer = tokenizer.batch_decode(outputs, skip_special_tokens=True)[0]  
+    key_sentences = answer.split("### Trả lời:")[1]
+
+    return answer.strip(), key_sentences.strip() 
+

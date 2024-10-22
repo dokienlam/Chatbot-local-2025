@@ -1,43 +1,40 @@
 from Graph_model import *
-from Data_Re_processing import *
 from sentence_transformers import SentenceTransformer
+import spacy 
 from Neo4j import *
 
 if __name__ == "__main__":
     
-    file = '/media/hanu/Learn/Self_learn/Chatbot/Data.docx'   # English
-    # file = '/media/hanu/Learn/Self_learn/Chatbot/Data_TV.docx'  # TV 
-
+    file = '/kaggle/input/123123123/Data_TV.docx'  # TV 
+#     file = '/kaggle/input/10k-dataset/10000_word.docx'
+    
     document_text = read_word_file(file)
     
-    query = "what is the name of the fairy in this story?"
-    true = 'The name of the fairy in this story is Lila'
+    nlp = spacy.load("en_core_web_sm")  
     
-    # query = "What is the name of the cat in the story?"
-    # true = 'The name of the cat in the story is Whiskers'
-    
-    # query = "Trí tuệ nhân tạo (AI) là gì?"
+#     dpr_model = SentenceTransformer('sentence-transformers/paraphrase-MiniLM-L6-v2')
     
     dpr_model = SentenceTransformer('sentence-transformers/all-mpnet-base-v2')
+    
+    sentences = split_sentences(document_text)
+    
+    graph = build_graph(sentences, dpr_model ,nlp)
+    
+    add_to_neo4j(graph, driver)
+    
+    query = "Trí tuệ nhân tạo (AI) là gì?"
+#     query = "AI có thể chia thành mấy loại chính?"
+#     query = "Học không có giám sát là gì?"
 
-    best_sentence, related_sentences, graph, best_score = graph_search(query, document_text, dpr_model)
+    best_entity_name, best_entity_type, best_score = find_most_similar_entity(query, driver, dpr_model)
     
-    add_to_neo4j(split_sentences(document_text), graph)
-    
-    # draw_graph(graph)
+    related_entities = query_related_entities(best_entity_name, driver)
 
-    # answer, key_sentences = generate_answer(query, best_sentence)
+    answer, key_sentences = generate_answer(query, best_entity_name)
+    keywords = extract_keywords(key_sentences)
     
-    # keywords = extract_keywords(key_sentences)
-    
-    answer = generate_answer(query, best_sentence)
-    keywords = extract_keywords(best_sentence)
-
-    print(f"\nquery: {query}")
-    print(f"\nBest_score: {best_score}")
-    print(f"\n{answer}")
-    print(f'True answer: {true}')
-    print(f"Keywords: {keywords}")
+    print(f"Best entity: {best_entity_name}, Similarity: {best_score}")
+    print(f"\nAnswer: {answer}")
+#     print(f"Keywords: {keywords}")
 
     driver.close()
-

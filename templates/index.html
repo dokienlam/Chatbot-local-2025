@@ -240,6 +240,49 @@
                     appendMessage("ChatBot", BOT_IMG, "left", "Đã xảy ra lỗi khi lấy phản hồi.");
                 });
         }
+        function textToSpeech(text) {
+    const synth = window.speechSynthesis;
+    let voices = synth.getVoices();
+
+    if (!voices.length) {
+        // Đăng ký sự kiện khi giọng nói thay đổi (khi đã tải đủ)
+        synth.onvoiceschanged = () => {
+            voices = synth.getVoices();
+            logAvailableVoices(voices);  // Ghi lại danh sách giọng nói
+            speakText(text, voices);
+        };
+    } else {
+        logAvailableVoices(voices);  // Ghi lại danh sách giọng nói
+        speakText(text, voices);
+    }
+}
+
+function logAvailableVoices(voices) {
+    console.log("Available voices:", voices);
+}
+
+function speakText(text, voices) {
+    const utterance = new SpeechSynthesisUtterance(text);
+
+    // Tìm giọng tiếng Việt
+    const vietnameseVoice = voices.find(voice => voice.lang === 'en-GB');
+
+    if (vietnameseVoice) {
+        utterance.voice = vietnameseVoice;
+    } else {
+        console.error('Không tìm thấy giọng tiếng Việt!');
+    }
+
+    // Phát âm văn bản
+    window.speechSynthesis.speak(utterance);
+}
+
+function logAvailableVoices(voices) {
+    voices.forEach(voice => {
+        console.log(`Voice: ${voice.name}, Language: ${voice.lang}`);
+    });
+}
+
 
         function playAudioFiles() {
             fetch('/downloads/output')
@@ -277,7 +320,8 @@
             appendMessage("You", "https://image.flaticon.com/icons/svg/327/327780.svg", "right", msgText);
             msgerInput.value = "";
 
-            fetch('../responses.json')
+            fetch('/static/responses.json')
+
                 .then(response => response.json())
                 .then(data => {
                     Object.values(data).forEach(value => {
@@ -291,7 +335,7 @@
         function botResponse(rawText) {
             $.get("/get", { msg: rawText })
                 .done(function(data) {
-                    const msgText = data;
+                    const msgText = data || "Không có phản hồi từ máy chủ";
                     appendMessage("ChatBot", BOT_IMG, "left", msgText);
                 })
                 .fail(function(error) {

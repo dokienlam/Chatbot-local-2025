@@ -259,12 +259,10 @@
                 // Đăng ký sự kiện khi giọng nói thay đổi (khi đã tải đủ)
                 synth.onvoiceschanged = () => {
                     voices = synth.getVoices();
-                    logAvailableVoices(voices);  // Ghi lại danh sách giọng nói
-                    speakText(text, voices);
+                    speakText(text, voices); // Phát âm ngay
                 };
             } else {
-                logAvailableVoices(voices);  // Ghi lại danh sách giọng nói
-                speakText(text, voices);
+                speakText(text, voices); // Phát âm ngay
             }
         }
 
@@ -274,9 +272,9 @@ function logAvailableVoices(voices) {
 
 function speakText(text, voices) {
     const utterance = new SpeechSynthesisUtterance(text);
-
+    
     // Tìm giọng tiếng Việt
-    const vietnameseVoice = voices.find(voice => voice.lang === 'en-GB');
+    const vietnameseVoice = voices.find(voice => voice.lang === 'en-GB'); // Bạn có thể chỉnh sửa lại ngôn ngữ nếu cần
 
     if (vietnameseVoice) {
         utterance.voice = vietnameseVoice;
@@ -331,17 +329,25 @@ function logAvailableVoices(voices) {
             appendMessage("You", "https://image.flaticon.com/icons/svg/327/327780.svg", "right", msgText);
             msgerInput.value = "";
 
+            // Lấy phản hồi từ responses.json
             fetch('/static/responses.json')
-
                 .then(response => response.json())
                 .then(data => {
-                    Object.values(data).forEach(value => {
+                    const responses = Object.values(data);
+                    // Duyệt qua và thêm từng phản hồi vào giao diện
+                    const responsePromises = responses.map(value => {
                         appendMessage("ChatBot", "https://image.flaticon.com/icons/svg/327/327779.svg", "left", value);
-                        textToSpeech(value);
+                        return textToSpeech(value); // Gọi hàm phát âm cho từng phản hồi
+                    });
+
+                    // Đợi tất cả các phản hồi được phát âm
+                    Promise.all(responsePromises).then(() => {
+                        console.log('All responses spoken!');
                     });
                 })
                 .catch(error => console.error('Error fetching bot responses:', error));
         });
+
 
         function botResponse(rawText) {
             $.get("/get", { msg: rawText })

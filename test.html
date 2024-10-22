@@ -6,29 +6,34 @@
     <title>Text to Speech</title>
 </head>
 <body>
-    <h1>Chuyển văn bản từ JSON thành giọng nói</h1>
-    <button onclick="readText()">Đọc văn bản</button>
+    <h1>Chuyển Văn Bản Thành Giọng Nói</h1>
+    <button id="speakButton">Đọc Văn Bản</button>
 
     <script>
-        // Đọc file JSON
-        fetch('du_lieu.json')
-            .then(response => response.json())
-            .then(data => {
-                window.textToRead = data.responese;
-            })
-            .catch(error => console.error('Lỗi khi đọc JSON:', error));
-
-        // Hàm chuyển văn bản thành giọng nói
-        function readText() {
-            if (window.textToRead) {
-                const speech = new SpeechSynthesisUtterance();
-                speech.text = window.textToRead;
-                speech.lang = 'vi-VN';  // Chọn ngôn ngữ tiếng Việt
-                speechSynthesis.speak(speech);
-            } else {
-                alert('Không có văn bản để đọc!');
-            }
+        // Hàm để lấy dữ liệu từ file JSON
+        async function fetchText() {
+            const response = await fetch('responses.json');
+            const data = await response.json();
+            return data.text;
         }
+
+        // Hàm để chuyển văn bản thành giọng nói
+        function speakText(text) {
+            const speech = new SpeechSynthesisUtterance();
+            speech.lang = 'vi-VN'; // Thiết lập ngôn ngữ là tiếng Việt
+            speech.text = text;
+            speech.volume = 1; // Âm lượng (0 đến 1)
+            speech.rate = 1; // Tốc độ nói (0.1 đến 10)
+            speech.pitch = 1; // Giọng nói (0 đến 2)
+
+            window.speechSynthesis.speak(speech);
+        }
+
+        // Lắng nghe sự kiện nhấn nút
+        document.getElementById('speakButton').addEventListener('click', async () => {
+            const text = await fetchText();
+            speakText(text);
+        });
     </script>
 </body>
 </html>

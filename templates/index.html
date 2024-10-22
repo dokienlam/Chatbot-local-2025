@@ -174,44 +174,54 @@
         }
 
         startInteractBtn.addEventListener("click", () => {
-            if (isRecording) {
-                mediaRecorder.stop();
-                stopTimer();
-                isRecording = false;
-                startInteractBtn.textContent = "Start Interact";
-            } else {
-                navigator.mediaDevices.getUserMedia({ audio: true })
-                    .then(stream => {
-                        mediaRecorder = new MediaRecorder(stream);
-                        mediaRecorder.start();
-                        audioChunks = [];
+    if (isRecording) {
+        mediaRecorder.stop();
+        stopTimer();
+        isRecording = false;
+        startInteractBtn.textContent = "Start Interact";
 
-                        mediaRecorder.addEventListener("dataavailable", event => {
-                            audioChunks.push(event.data);
-                        });
+        // Fetch JSON data and read its content
+        fetch('/static/responses.json')
+            .then(response => response.json())
+            .then(data => {
+                // Duyệt qua nội dung của JSON
+                Object.values(data).forEach(value => {
+                    appendMessage("ChatBot", BOT_IMG, "left", value);
+                    textToSpeech(value); // Đọc nội dung JSON
+                });
+            })
+            .catch(error => console.error('Error fetching bot responses:', error));
+    } else {
+        navigator.mediaDevices.getUserMedia({ audio: true })
+            .then(stream => {
+                mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder.start();
+                audioChunks = [];
 
-                        mediaRecorder.addEventListener("stop", () => {
-                            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                            uploadAudio(audioBlob);
+                mediaRecorder.addEventListener("dataavailable", event => {
+                    audioChunks.push(event.data);
+                });
 
-                            const userMsg = "interact";
-                            appendMessage("ChatBot", "https://image.flaticon.com/icons/svg/327/327779.svg", "left");
-                        });
+                mediaRecorder.addEventListener("stop", () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    uploadAudio(audioBlob);
+                });
 
-                        startTimer();
-                        isRecording = true;
-                        startInteractBtn.textContent = "Stop Interact";
+                startTimer();
+                isRecording = true;
+                startInteractBtn.textContent = "Stop Interact";
 
-                        setTimeout(() => {
-                            if (isRecording) {
-                                mediaRecorder.stop();
-                                stopTimer();
-                            }
-                        }, 60000); // 1 minute limit
-                    })
-                    .catch(error => console.error("Error accessing microphone:", error));
-            }
-        });
+                setTimeout(() => {
+                    if (isRecording) {
+                        mediaRecorder.stop();
+                        stopTimer();
+                    }
+                }, 60000); // 1 minute limit
+            })
+            .catch(error => console.error("Error accessing microphone:", error));
+    }
+});
+
 
         function uploadAudio(blob) {
             const formData = new FormData();
@@ -223,8 +233,9 @@
             })
             .then(response => response.json())
             .then(data => {
+                // appendMessage("ChatBot", "https://image.flaticon.com/icons/svg/327/327779.svg", "left", `Audio saved: ${data.file}`);
                 console.log('Server response:', data);
-                appendMessage("ChatBot", "https://image.flaticon.com/icons/svg/327/327779.svg", "left", `Audio saved: ${data.file}`);
+
             })
             .catch(error => console.error('Error uploading audio:', error));
         }
@@ -241,21 +252,21 @@
                 });
         }
         function textToSpeech(text) {
-    const synth = window.speechSynthesis;
-    let voices = synth.getVoices();
+            const synth = window.speechSynthesis;
+            let voices = synth.getVoices();
 
-    if (!voices.length) {
-        // Đăng ký sự kiện khi giọng nói thay đổi (khi đã tải đủ)
-        synth.onvoiceschanged = () => {
-            voices = synth.getVoices();
-            logAvailableVoices(voices);  // Ghi lại danh sách giọng nói
-            speakText(text, voices);
-        };
-    } else {
-        logAvailableVoices(voices);  // Ghi lại danh sách giọng nói
-        speakText(text, voices);
-    }
-}
+            if (!voices.length) {
+                // Đăng ký sự kiện khi giọng nói thay đổi (khi đã tải đủ)
+                synth.onvoiceschanged = () => {
+                    voices = synth.getVoices();
+                    logAvailableVoices(voices);  // Ghi lại danh sách giọng nói
+                    speakText(text, voices);
+                };
+            } else {
+                logAvailableVoices(voices);  // Ghi lại danh sách giọng nói
+                speakText(text, voices);
+            }
+        }
 
 function logAvailableVoices(voices) {
     console.log("Available voices:", voices);

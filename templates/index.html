@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>ChatBot</title>
+    <link rel="stylesheet" href="../static/css/style.css">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script src='https://use.fontawesome.com/releases/v5.0.13/js/all.js'></script>
+</head>
+
+<body>
+    <section class="msger">
+        <header class="msger-header">
+            <div class="msger-header-title">
+                <i class="fas fa-bug"></i> ChatBot <i class="fas fa-bug"></i>
+            </div>
+            <div class="recording-timer" id="timer">00:00</div>
+        </header>
+        <main class="msger-chat">
+            <div class="msg left-msg">
+                <div class="msg-img" style="background-image: url(https://image.flaticon.com/icons/svg/327/327779.svg)">
+                </div>
+                <div class="msg-bubble">
+                    <div class="msg-info">
+                        <div class="msg-info-name">ChatBot</div>
+                        <div class="msg-info-time"></div>
+                    </div>
+                    <div class="msg-text">
+                        Hi, welcome to ChatBot! 😄
+                    </div>
+                </div>
+            </div>
+        </main>
+        <form class="msger-inputarea">
+            <input type="text" class="msger-input" id="textInput" placeholder="Enter your message...">
+            <button type="submit" class="msger-send-btn">Send</button>
+            <button type="button" id="startInteract" class="msger-interact-btn">Start Interact</button>
+        </form>
+    </section>
+
+    <script>
+        const msgerForm = document.querySelector(".msger-inputarea");
+        const msgerInput = document.querySelector(".msger-input");
+        const msgerChat = document.querySelector(".msger-chat");
+        const startInteractBtn = document.querySelector("#startInteract");
+
+        let recorder;
+        let recordingTimer;
+        let timerInterval;
+        let isRecording = false;
+        let mediaRecorder;
+        let audioChunks = [];
+        class AudioRecorder {
+            constructor() {
+                this.audioContext = null;
+                this.stream = null;
+                this.recording = false;
+                this.audioChunks = [];
+                this.processor = null;
+            }
+
+            async startRecording() {
+                try {
+                    this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    
+                    const source = this.audioContext.createMediaStreamSource(this.stream);
+                    this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
+                    
+                    this.processor.onaudioprocess = (e) => {
+                        if (this.recording) {
+                            const audioData = e.inputBuffer.getChannelData(0);
+                            this.audioChunks.push(new Float32Array(audioData));
+                        }
+                    };
+
+                    source.connect(this.processor);
+                    this.processor.connect(this.audioContext.destination);
+                    
+                    this.recording = true;
+                } catch (error) {
+                    console.error('Error starting recording:', error);
+                }
+            }
+
+            stopRecording() {
+                this.recording = false;
+                
+                if (this.processor) {
+                    this.processor.disconnect();
+                    this.processor = null;
+                }
+                
+                if (this.stream) {
+                    this.stream.getTracks().forEach(track => track.stop());
+                }
+                
+                const audioData = this.mergeAudioChunks();
+                const wavBlob = this.createWavFile(audioData);
+                
+                this.audioChunks = [];
+                
+                return wavBlob;
+            }
+
+            mergeAudioChunks() {
+                const length = this.audioChunks.reduce((acc, chunk) => acc + chunk.length, 0);
+                const mergedArray = new Float32Array(length);
+                let offset = 0;
+                
+                for (const chunk of this.audioChunks) {
+                    mergedArray.set(chunk, offset);
+                    offset += chunk.length;
+                }
+                
+                return mergedArray;
+            }
+
+            createWavFile(audioData) {
+                const wavHeader = this.createWavHeader(audioData.length);
+                const wavData = this.encodeWavData(audioData);
+                const blob = new Blob([wavHeader, wavData], { type: 'audio/webm' });
+                return blob;
+            }
+
+            createWavHeader(dataLength) {
+                const buffer = new ArrayBuffer(44);
+                const view = new DataView(buffer);
+                
+                // RIFF chunk descriptor
+                this.writeString(view, 0, 'RIFF');
+                view.setUint32(4, 36 + dataLength * 2, true);
+                this.writeString(view, 8, 'WAVE');
+                
+                // fmt sub-chunk
+                this.writeString(view, 12, 'fmt ');
+                view.setUint32(16, 16, true);
+                view.setUint16(20, 1, true);
+                view.setUint16(22, 1, true);
+                view.setUint32(24, this.audioContext.sampleRate, true);
+                view.setUint32(28, this.audioContext.sampleRate * 2, true);
+                view.setUint16(32, 2, true);
+                view.setUint16(34, 16, true);
+                
+                // data sub-chunk
+                this.writeString(view, 36, 'data');
+                view.setUint32(40, dataLength * 2, true);
+                
+                return buffer;
+            }
+
+            encodeWavData(audioData) {
+                const buffer = new ArrayBuffer(audioData.length * 2);
+                const view = new DataView(buffer);
+                
+                for (let i = 0; i < audioData.length; i++) {
+                    const sample = Math.max(-1, Math.min(1, audioData[i]));
+                    view.setInt16(i * 2, sample * 0x7FFF, true);
+                }
+                
+                return buffer;
+            }
+
+            writeString(view, offset, string) {
+                for (let i = 0; i < string.length; i++) {
+                    view.setUint8(offset + i, string.charCodeAt(i));
+                }
+            }
+        }
+
+        startInteractBtn.addEventListener("click", () => {
+            if (isRecording) {
+                mediaRecorder.stop();
+                stopTimer();
+                isRecording = false;
+                startInteractBtn.textContent = "Start Interact";
+            } else {
+                navigator.mediaDevices.getUserMedia({ audio: true })
+                    .then(stream => {
+                        mediaRecorder = new MediaRecorder(stream);
+                        mediaRecorder.start();
+                        audioChunks = [];
+
+                        mediaRecorder.addEventListener("dataavailable", event => {
+                            audioChunks.push(event.data);
+                        });
+
+                        mediaRecorder.addEventListener("stop", () => {
+                            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                            uploadAudio(audioBlob);
+
+                            const userMsg = "interact";
+                            appendMessage("ChatBot", "https://image.flaticon.com/icons/svg/327/327779.svg", "left");
+                        });
+
+                        startTimer();
+                        isRecording = true;
+                        startInteractBtn.textContent = "Stop Interact";
+
+                        setTimeout(() => {
+                            if (isRecording) {
+                                mediaRecorder.stop();
+                                stopTimer();
+                            }
+                        }, 60000); // 1 minute limit
+                    })
+                    .catch(error => console.error("Error accessing microphone:", error));
+            }
+        });
+
+        function uploadAudio(blob) {
+            const formData = new FormData();
+            formData.append('audio', blob, `user_recording_${Date.now()}.webm`);
+
+            fetch('../outputs', {
+                method: 'POST',
+                body: formData,
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Server response:', data);
+                appendMessage("ChatBot", "https://image.flaticon.com/icons/svg/327/327779.svg", "left", `Audio saved: ${data.file}`);
+            })
+            .catch(error => console.error('Error uploading audio:', error));
+        }
+
+        function botResponseFromAudio() {
+            $.get("/bot_speech_to_text")
+                .done(function(data) {
+                    const msgText = data;
+                    appendMessage("ChatBot", BOT_IMG, "left", msgText);
+                })
+                .fail(function(error) {
+                    console.error('Error fetching response from API:', error);
+                    appendMessage("ChatBot", BOT_IMG, "left", "Đã xảy ra lỗi khi lấy phản hồi.");
+                });
+        }
+
+        function playAudioFiles() {
+            fetch('/downloads/output')
+                .then(response => response.json())
+                .then(data => {
+                    const files = data.files;
+                    playNextAudio(files, 0);
+                })
+                .catch(error => {
+                    console.error('Lỗi khi tải danh sách tệp âm thanh:', error);
+                });
+        }
+
+        function playNextAudio(files, currentIndex) {
+            if (currentIndex >= files.length) {
+                console.log('Đã phát hết tất cả các tệp âm thanh.');
+                return;
+            }
+
+            const fileName = files[currentIndex];
+            const audio = new Audio(`/downloads/output/${fileName}`);
+
+            audio.play();
+
+            audio.onended = function() {
+                playNextAudio(files, currentIndex + 1);
+            };
+        }
+
+        msgerForm.addEventListener("submit", event => {
+            event.preventDefault();
+            const msgText = msgerInput.value.trim().toLowerCase();
+            if (!msgText) return;
+
+            appendMessage("You", "https://image.flaticon.com/icons/svg/327/327780.svg", "right", msgText);
+            msgerInput.value = "";
+
+            fetch('../responses.json')
+                .then(response => response.json())
+                .then(data => {
+                    Object.values(data).forEach(value => {
+                        appendMessage("ChatBot", "https://image.flaticon.com/icons/svg/327/327779.svg", "left", value);
+                        textToSpeech(value);
+                    });
+                })
+                .catch(error => console.error('Error fetching bot responses:', error));
+        });
+
+        function botResponse(rawText) {
+            $.get("/get", { msg: rawText })
+                .done(function(data) {
+                    const msgText = data;
+                    appendMessage("ChatBot", BOT_IMG, "left", msgText);
+                })
+                .fail(function(error) {
+                    console.error('Error fetching response from API:', error);
+                    appendMessage("ChatBot", BOT_IMG, "left", "Đã xảy ra lỗi khi lấy phản hồi.");
+                });
+        }
+
+        function appendMessage(name, img, side, text) {
+            const msgHTML = `
+                <div class="msg ${side}-msg">
+                    <div class="msg-img" style="background-image: url(${img})"></div>
+                    <div class="msg-bubble">
+                        <div class="msg-info">
+                            <div class="msg-info-name">${name}</div>
+                            <div class="msg-info-time">${formatDate(new Date())}</div>
+                        </div>
+                        <div class="msg-text">${text}</div>
+                    </div>
+                </div>
+            `;
+            msgerChat.insertAdjacentHTML("beforeend", msgHTML);
+            msgerChat.scrollTop += 500;
+        }
+
+        function startTimer() {
+            let seconds = 0;
+            recordingTimer = document.querySelector('.recording-timer');
+            recordingTimer.innerHTML = "Recording: 00:00";
+
+            timerInterval = setInterval(() => {
+                seconds++;
+                let min = Math.floor(seconds / 60);
+                let sec = seconds % 60;
+                recordingTimer.innerHTML = `Recording: ${formatTime(min)}:${formatTime(sec)}`;
+            }, 1000);
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+            recordingTimer.innerHTML = "Recording stopped.";
+        }
+
+        function formatTime(value) {
+            return value < 10 ? `0${value}` : value;
+        }
+
+        function formatDate(date) {
+            const h = "0" + date.getHours();
+            const m = "0" + date.getMinutes();
+            return `${h.slice(-2)}:${m.slice(-2)}`;
+        }
+
+        const PERSON_IMG = "/static/3551592.jpg";
+        const BOT_IMG = "static/Graident Ai Robot.jpg";
+
+
+// const express = require('express');
+// const fs = require('fs');
+// const bodyParser = require('body-parser');
+// const cors = require('cors');
+// const path = require('path');
+// const multer = require('multer');
+
+// const app = express();
+// const PORT = 3001;
+
+// // Cấu hình Multer để lưu file
+// const storage = multer.diskStorage({
+//     destination: (req, file, cb) => {
+//         cb(null, uploadsDir); // Lưu file vào thư mục uploads
+//     },
+//     filename: (req, file, cb) => {
+//         const fileName = `${file.fieldname}_${Date.now()}.webm`;
+//         cb(null, fileName); // Tạo tên file duy nhất
+//     }
+// });
+// const upload = multer({ storage: storage });
+
+// // Middleware
+// app.use(cors());
+// app.use(bodyParser.json({ limit: '10mb' }));
+// app.use(express.static('./')); // Phục vụ các file tĩnh
+
+// // Route chính
+// app.get('/', (req, res) => {
+//     res.send('Welcome to the ChatBot API! Use /upload to upload audio and /downloads/:filename to download audio.');
+// });
+
+// // Endpoint để upload audio
+// app.post('../outputs', upload.single('audio'), (req, res) => {
+//     if (!req.file) {
+//         console.error('No file uploaded.');
+//         return res.status(400).json({ message: 'No file uploaded.' });
+//     }
+
+//     console.log('Audio file uploaded successfully:', req.file);
+//     res.json({ message: 'Audio file saved successfully!', file: req.file.filename });
+// });
+
+// // Endpoint để tải file âm thanh
+// app.get('/downloads/:filename', (req, res) => {
+//     const filePath = path.join(uploadsDir, req.params.filename);
+
+//     res.download(filePath, (err) => {
+//         if (err) {
+//             console.error("File download error:", err);
+//             res.status(500).send("Error downloading file.");
+//         } else {
+//             console.log(`File downloaded: ${filePath}`);
+//         }
+//     });
+// });
+
+// // Bắt đầu server
+// app.listen(PORT, () => {
+//     console.log(`Server is running on http://localhost:${PORT}`);
+// });
+
+        
+    </script>
+</body>
+
+</html>

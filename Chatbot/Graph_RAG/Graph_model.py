@@ -84,7 +84,7 @@ def generate_answer(query, context):
     outputs = model.generate(
         input_ids=inputs['input_ids'],
         attention_mask=inputs['attention_mask'],
-        max_length=400,
+        max_length=1025,
         num_return_sequences=1,
         pad_token_id=tokenizer.pad_token_id,
         do_sample=True,

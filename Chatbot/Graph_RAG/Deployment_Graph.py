@@ -5,7 +5,7 @@ from Neo4j import *
 
 if __name__ == "__main__":
     
-    file = '/media/hanu/Learn/Self_learn/Chatbot/Data.docx'   # English
+    file = 'C:/Users/ADMIN/Documents/GitHub/Chatbot-local-2025/Chatbot/Data_TV.docx'   # English
     # file = '/media/hanu/Learn/Self_learn/Chatbot/Data_TV.docx'  # TV 
 
     document_text = read_word_file(file)

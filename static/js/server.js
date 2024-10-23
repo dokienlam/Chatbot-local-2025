@@ -8,7 +8,7 @@ const multer = require('multer');
 const app = express();
 const PORT = 3001;
 
-// Kiểm tra và tạo thư mục uploads nếu không tồn tại
+// Kiểm tra và tạo thư mục outputs nếu không tồn tại
 const uploadsDir = path.join(__dirname, '../outputs');
 if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir);
@@ -64,3 +64,25 @@ app.get('/downloads/:filename', (req, res) => {
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });
+
+//////
+// document.getElementById('submitText').addEventListener('click', function() {
+//     const userInput = document.getElementById('textInput').value;
+
+//     // Gửi dữ liệu đến server bằng AJAX
+//     fetch('/process_text', {
+//         method: 'POST',
+//         headers: {
+//             'Content-Type': 'application/json'
+//         },
+//         body: JSON.stringify({ text: userInput })
+//     })
+//     .then(response => response.json())
+//     .then(data => {
+//         console.log('Server response:', data);
+//         // Hiển thị phản hồi từ server (nếu có)
+//     })
+//     .catch(error => {
+//         console.error('Error:', error);
+//     });
+// });

@@ -2,12 +2,14 @@ from flask import Flask, request, render_template, send_from_directory, redirect
 # from werkzeug.utils import secure_filename
 import os
 from datetime import datetime
-# import speech_recognition as sr
+import speech_recognition as sr
 # import soundfile
 import time
 import warnings
 warnings.filterwarnings("ignore")
 
+from pydub import AudioSegment
+from io import BytesIO
 # from main import MainApp 
 
 app = Flask(__name__)
@@ -46,6 +48,7 @@ def upload_form():
 #     flash('File uploaded successfully!')
 
 #     return jsonify({'file': filename})
+
 @app.route('/outputs', methods=['POST'])
 def upload_audio():
     if 'audio' not in request.files:
@@ -55,13 +58,41 @@ def upload_audio():
     if audio_file.filename == '':
         return jsonify({'error': 'No selected file.'}), 400
 
-    # Lưu tệp vào thư mục OUTPUT_FOLDER
-    audio_file_path = os.path.join(app.config['UPLOAD_FOLDER'], audio_file.filename)
-    audio_file.save(audio_file_path)
+    # Đọc file audio trực tiếp từ request mà không lưu vào thư mục
+    try:
+        # Chuyển đổi file audio sang WAV trong bộ nhớ
+        audio = AudioSegment.from_file(BytesIO(audio_file.read()))
+        wav_io = BytesIO()
+        audio.export(wav_io, format='wav')  # Xuất file dưới định dạng WAV vào bộ nhớ
+        wav_io.seek(0)  # Đặt con trỏ về vị trí đầu của file
 
-    flash('File uploaded successfully!')
-    return jsonify({'file': audio_file.filename})
+        # Chuyển đổi file WAV sang văn bản
+        recognizer = sr.Recognizer()
+        with sr.AudioFile(wav_io) as source:
+            audio_data = recognizer.record(source)  # Đọc toàn bộ nội dung file
+            try:
+                text = recognizer.recognize_google(audio_data, language='vi-VN')  # Chuyển đổi giọng nói thành văn bản
+                print(f'Nhận diện được văn bản: {text}')  # In ra console để kiểm tra
+                return jsonify({'text': text})  # Trả về văn bản đã nhận diện
+            except sr.UnknownValueError:
+                return jsonify({'error': 'Could not understand audio'}), 400
+            except sr.RequestError as e:
+                return jsonify({'error': f'Request error: {e}'}), 500
 
+    except Exception as e:
+        return jsonify({'error': f'Failed to process audio: {e}'}), 500
+
+###
+# @app.route('/process_text', methods=['POST'])
+# def process_text():
+#     data = request.get_json()
+#     user_text = data['text']
+#     print(user_text)  # In ra console để kiểm tra
+
+#     # Ở đây, bạn có thể thực hiện các xử lý với user_text
+#     # Ví dụ: gửi đến một model ngôn ngữ, lưu vào database, ...
+
+#     return jsonify({'message': 'Text received successfully'})
 
 # @app.route("/bot_speech_to_text")
 # def bot_speech_to_text():
@@ -109,6 +140,7 @@ def download_file(filename):
 #     if not os.path.exists(file_path):
 #         return "File not found", 404
 #     return send_from_directory("outputs", filename, as_attachment=True)
+
 
 if __name__ == '__main__':
     app.run(debug=True)

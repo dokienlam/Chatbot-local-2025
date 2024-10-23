@@ -5,7 +5,7 @@ from Neo4j import *
 
 if __name__ == "__main__":
     
-    file = '/kaggle/input/123123123/Data_TV.docx'  # TV 
+    file = r'C:\Users\ADMIN\Documents\GitHub\Chatbot-local-2025\Chatbot\Data_TV.docx'  # TV 
 #     file = '/kaggle/input/10k-dataset/10000_word.docx'
     
     document_text = read_word_file(file)

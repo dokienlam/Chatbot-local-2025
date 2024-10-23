@@ -32,13 +32,14 @@ def upload_form():
     return render_template('index.html')
 
 
-# @app.route("/get")
-# def get_bot_response():
-#     userText = request.args.get('msg')
-#     if userText:
-#         ans = main_app.ask_text(userText)
-#         return jsonify(ans)  
-#     return jsonify("Không nhận được câu hỏi!") 
+@app.route("/get")
+def get_bot_response():
+    userText = request.args.get('msg')
+    print(userText)
+    # if userText:
+    #     ans = main_app.ask_text(userText)
+    #     return jsonify(ans)  
+    # return jsonify("Không nhận được câu hỏi!") 
 
 # @app.route('/outputs', methods=['GET'])
 # def upload_audio():
@@ -46,6 +47,8 @@ def upload_form():
 #     flash('File uploaded successfully!')
 
 #     return jsonify({'file': filename})
+
+
 @app.route('/outputs', methods=['POST'])
 def upload_audio():
     if 'audio' not in request.files:

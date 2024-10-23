@@ -6,13 +6,15 @@ password = "drawers-sex-widths"
 
 driver = GraphDatabase.driver(uri, auth=(username, password))
 
-def add_to_neo4j(sentences, graph):
+def add_to_neo4j(graph, driver):
     with driver.session() as session:
-        for i, sentence in enumerate(sentences):
-            session.run("CREATE (s:Sentence {id: $id, text: $text})", id=i, text=sentence)
+        for node in graph.nodes(data=True):
+            entity = node[0]
+            entity_type = node[1].get("entity_type", "Unknown")
+            session.run("MERGE (e:Entity {name: $name, type: $type})", name=entity, type=entity_type)
 
-        for (u, v, weight) in graph.edges(data=True):
+        for u, v, weight in graph.edges(data=True):
             session.run("""
-                MATCH (s1:Sentence {id: $id1}), (s2:Sentence {id: $id2})
-                CREATE (s1)-[:SIMILARITY {weight: $weight}]->(s2)
-            """, id1=u, id2=v, weight=weight['weight'])
+                MATCH (e1:Entity {name: $name1}), (e2:Entity {name: $name2})
+                CREATE (e1)-[:SIMILARITY {weight: $weight}]->(e2)
+            """, name1=u, name2=v, weight=weight['weight'])

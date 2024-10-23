@@ -329,19 +329,23 @@
             if (!msgText) return;
 
             appendMessage("You", "https://image.flaticon.com/icons/svg/327/327780.svg", "right", msgText);
-            msgerInput.value = "";
 
-            fetch('/static/responses.json')
+            fetch('/get', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ message: msgText }),  
+            })
+            .then(response => response.json())
+            .then(data => {
+                appendMessage("ChatBot", "https://image.flaticon.com/icons/svg/327/327779.svg", "left", data.response);
+            })
+            .catch(error => console.error('Error:', error));
 
-                .then(response => response.json())
-                .then(data => {
-                    Object.values(data).forEach(value => {
-                        appendMessage("ChatBot", "https://image.flaticon.com/icons/svg/327/327779.svg", "left", value);
-                        textToSpeech(value);
-                    });
-                })
-                .catch(error => console.error('Error fetching bot responses:', error));
+            msgerInput.value = "";  
         });
+
 
         function botResponse(rawText) {
             $.get("/get", { msg: rawText })

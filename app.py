@@ -5,9 +5,9 @@ from datetime import datetime
 import speech_recognition as sr
 # import soundfile
 import time
+from Deployment_Graph import main
 import warnings
 warnings.filterwarnings("ignore")
-
 
 from pydub import AudioSegment
 from io import BytesIO
@@ -40,13 +40,15 @@ def process_message():
     # Lấy dữ liệu từ yêu cầu POST
     data = request.get_json()
     user_message = data.get('message')
-
-    # Xử lý tin nhắn (ví dụ: trả lời người dùng)
-    response = f"Bạn đã nói: {user_message}"
+    response = main(user_message)
+    # # Xử lý tin nhắn (ví dụ: trả lời người dùng)
+    # response = f"Bạn đã nói: {user_message}"
 
     # Trả về phản hồi JSON cho client
-    print(user_message)
-    return jsonify({'response': response}), user_message
+    response_json = jsonify({'response': response})
+    response_json.headers['Content-Type'] = 'application/json; charset=utf-8'
+    
+    return response_json
 
 @app.route('/outputs', methods=['POST'])
 def upload_audio():

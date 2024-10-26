@@ -194,13 +194,19 @@
                 mediaRecorder.addEventListener("stop", () => {
                     const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                     uploadAudio(audioBlob)
-                        .then(responseText => {
-                            console.log("Received text:", responseText);
-                            appendMessage('Bot', 'path/to/bot/image.png', 'left', responseText);
-                        })
-                        .catch(err => {
-                            console.error("Error uploading audio:", err);
-                        });
+                .then(({ recognizedText, serverResponse }) => {
+                    console.log("Recognized Text:", recognizedText); // In ra văn bản nhận diện
+                    console.log("Server Response:", serverResponse);  // In ra phản hồi từ server
+
+                    // Hiển thị văn bản nhận diện
+                    appendMessage('You', 'path/to/bot/image.png', 'right', recognizedText);
+
+                    // Hiển thị phản hồi từ server
+                    appendMessage('Bot', 'path/to/bot/image.png', 'left', serverResponse);
+                })
+                .catch(err => {
+                    console.error("Error uploading audio:", err);
+                });
                 });
 
                 mediaRecorder.start();
@@ -260,10 +266,14 @@
         })
         .then(data => {
             console.log("Server Response:", data); // In ra phản hồi từ server
-            if (data && data.response) {
-                resolve(data.response); // Trả về giá trị trong 'response'
+            if (data && data.recognized_text && data.response) {
+                // Trả về cả recognized_text và response
+                resolve({
+                    recognizedText: data.recognized_text,
+                    serverResponse: data.response
+                });
             } else {
-                reject("Invalid response format"); // Kiểm tra xem có thuộc tính 'response' hay không
+                reject("Invalid response format"); // Kiểm tra xem có thuộc tính 'recognized_text' và 'response' hay không
             }
         })
         .catch(error => {
@@ -273,26 +283,6 @@
     });
 }
 
-
-// ------------------------main 
-//         function uploadAudio(blob) {
-            
-//             const formData = new FormData();
-//             formData.append('audio', blob, `user_recording_${Date.now()}.webm`);
-
-//             fetch('../outputs', {
-//                 method: 'POST',
-//                 body: formData,
-//             })
-//             .then(response => response.text())  // Đọc phản hồi dưới dạng text
-//             .then(data => {
-//                 // textToSpeech(data)
-//                 // botResponse(data)
-//                 appendMessage("ChatBot", "https://image.flaticon.com/icons/svg/327/327779.svg", "left", data.response);
-//                 console.log('Server response as text:', data);  // In nội dung phản hồi
-//             })
-//             .catch(error => console.error('Error to response:', error));
-// }
 
         
         function botResponseFromAudio() {

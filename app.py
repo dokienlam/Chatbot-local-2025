@@ -72,11 +72,14 @@ def upload_audio():
         print(f'Nhận diện được văn bản: {text}')  # In ra console để kiểm tra
 
     response = main(text)
-    response_json = jsonify({'response': response})
+    response_json = jsonify({
+        'recognized_text': text,
+        'response': response
+    })
     response_json.headers['Content-Type'] = 'application/json; charset=utf-8'
     
     return response_json
-    
+
 # Trả về phản hồi JSON cho client
 
     # response_json = jsonify({'response': response})

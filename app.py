@@ -72,11 +72,10 @@ def upload_audio():
         print(f'Nhận diện được văn bản: {text}')  # In ra console để kiểm tra
 
     response = main(text)
-    response = {"responese": response}
-    with open(r"C:\Users\ADMIN\Documents\GitHub\Chatbot-local-2025\static\js\responses.json", "w", encoding="utf-8") as json_file:
-        json.dump(response, json_file, ensure_ascii=False, indent=4)
+    response_json = jsonify({'response': response})
+    response_json.headers['Content-Type'] = 'application/json; charset=utf-8'
     
-    return response
+    return response_json
     
 # Trả về phản hồi JSON cho client
 

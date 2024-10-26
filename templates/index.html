@@ -10,20 +10,20 @@
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/style.css') }}">
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
-    <script src='https://use.fontawesome.com/releases/v5.0.13/js/all.js'></script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.6.0/css/solid.min.css'></script>
 </head>
 
-<body>
+<body style="background-image: url(https://media.wired.com/photos/6595c546f6145f9ca1309145/master/pass/_BC-wired_selmasabanovic_kaylareeferphoto-127.jpg);background-size: cover;">
     <section class="msger">
         <header class="msger-header">
             <div class="msger-header-title">
-                <i class="fas fa-bug"></i> ChatBot <i class="fas fa-bug"></i>
+            ChatBot
             </div>
             <div class="recording-timer" id="timer">00:00</div>
         </header>
         <main class="msger-chat">
             <div class="msg left-msg">
-                <div class="msg-img" style="background-image: url(https://image.flaticon.com/icons/svg/327/327779.svg)">
+                <div class="msg-img" style="background-image: url(https://img.freepik.com/free-photo/view-graphic-3d-robot_23-2150849173.jpg)">
                 </div>
                 <div class="msg-bubble">
                     <div class="msg-info">
@@ -31,7 +31,7 @@
                         <div class="msg-info-time"></div>
                     </div>
                     <div class="msg-text">
-                        Hi, welcome to ChatBot! 😄
+                        Hi, welcome to ChatBot!
                     </div>
                 </div>
             </div>
@@ -39,7 +39,7 @@
         <form class="msger-inputarea">
             <input type="text" class="msger-input" id="textInput" placeholder="Enter your message...">
             <button type="submit" class="msger-send-btn">Send</button>
-            <button type="button" id="startInteract" class="msger-interact-btn">Start Interact</button>
+            <button type="button" id="startInteract" class="msger-interact-btn">Start record</button>
         </form>
     </section>
 

@@ -4,6 +4,8 @@ import networkx as nx
 from transformers import GPT2LMHeadModel, GPT2Tokenizer, AutoModel, AutoTokenizer, AutoModelForCausalLM, AutoConfig
 import torch
 # from ollama_client import generate  
+from huggingface_hub import login
+
 
 def build_graph(sentences, model, nlp ):
     graph = nx.Graph()
@@ -75,50 +77,51 @@ def query_related_entities(entity_name, driver):
     return related_entities
 
 
-def generate_answer(query):
+# def generate_answer(query):
 
-    model_path = "vinai/PhoGPT-4B-Chat"  
+#     model_path = "vinai/PhoGPT-4B-Chat"  
     
-    config = AutoConfig.from_pretrained(model_path, trust_remote_code=True)  
+#     config = AutoConfig.from_pretrained(model_path, trust_remote_code=True)  
     
-    config.init_device = "cuda"
+#     config.init_device = "cuda"
     
-    model = AutoModelForCausalLM.from_pretrained(model_path, config=config, torch_dtype=torch.float16, trust_remote_code=True)
+#     model = AutoModelForCausalLM.from_pretrained(model_path, config=config, torch_dtype=torch.float16, trust_remote_code=True)
     
-#     model.eval() 
+# #     model.eval() 
     
-    tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)  
+#     tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)  
     
-#     instruction = f"Dựa vào văn bản sau đây:\n{context}\nHãy trả lời câu hỏi: {query}"
-    instruction = f"\n{query}"
+# #     instruction = f"Dựa vào văn bản sau đây:\n{context}\nHãy trả lời câu hỏi: {query}"
+#     instruction = f"\n{query}"
 
-    # PROMPT_TEMPLATE = f"### Câu hỏi: {instruction} \n### Trả lời:" 
-    PROMPT_TEMPLATE = f"### Câu hỏi: {instruction} \n### Trả lời:" 
+#     # PROMPT_TEMPLATE = f"### Câu hỏi: {instruction} \n### Trả lời:" 
+#     PROMPT_TEMPLATE = f"### Câu hỏi: {instruction} \n### Trả lời:" 
 
 
-    input_prompt = PROMPT_TEMPLATE.format_map({"instruction": instruction})  
+#     input_prompt = PROMPT_TEMPLATE.format_map({"instruction": instruction})  
     
-    input_ids = tokenizer(input_prompt, return_tensors="pt")
+#     input_ids = tokenizer(input_prompt, return_tensors="pt")
     
-    outputs = model.generate(  
-        inputs=input_ids["input_ids"].to("cuda"),  
-        attention_mask=input_ids["attention_mask"].to("cuda"),  
-        do_sample=True,  
-        temperature=1,  
-        num_return_sequences=1,
-        top_k=50,  
-        top_p=0.9, 
-        max_new_tokens=2048,  
-        eos_token_id=tokenizer.eos_token_id,  
-        pad_token_id=tokenizer.pad_token_id  
-    )  
+#     outputs = model.generate(  
+#         inputs=input_ids["input_ids"].to("cuda"),  
+#         attention_mask=input_ids["attention_mask"].to("cuda"),  
+#         do_sample=True,  
+#         temperature=1,  
+#         num_return_sequences=1,
+#         top_k=50,  
+#         top_p=0.9, 
+#         max_new_tokens=2048,  
+#         eos_token_id=tokenizer.eos_token_id,  
+#         pad_token_id=tokenizer.pad_token_id  
+#     )  
 
-    answer = tokenizer.batch_decode(outputs, skip_special_tokens=True)[0]  
-    # key_sentences = answer.split("### Trả lời:")[1]
+#     answer = tokenizer.batch_decode(outputs, skip_special_tokens=True)[0]  
+#     # key_sentences = answer.split("### Trả lời:")[1]
 
-    # return answer.strip(), key_sentences.strip() 
-    return answer.strip()
+#     # return answer.strip(), key_sentences.strip() 
+#     return answer.strip()
 
+####
 
 # from ollama import Ollama
 
@@ -166,3 +169,87 @@ def generate_answer(query):
 #         key_sentences = ""
 
 #     return answer.strip(), key_sentences.strip()
+
+
+
+# def generate_answer(query):
+#     model_path = "vinai/PhoGPT-4B-Chat"  
+    
+#     config = AutoConfig.from_pretrained(model_path, trust_remote_code=True)  
+#     config.init_device = "cuda"
+    
+#     model = AutoModelForCausalLM.from_pretrained(model_path, config=config, torch_dtype=torch.float16, trust_remote_code=True)
+    
+#     tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)  
+    
+#     instruction = f"\n{query}"
+#     PROMPT_TEMPLATE = f"### Câu hỏi: {instruction} \n### Trả lời:"
+    
+#     input_prompt = PROMPT_TEMPLATE.format_map({"instruction": instruction})  
+#     input_ids = tokenizer(input_prompt, return_tensors="pt")
+    
+#     outputs = model.generate(
+#         inputs=input_ids["input_ids"].to("cuda"),
+#         attention_mask=input_ids["attention_mask"].to("cuda"),
+#         do_sample=True,
+#         temperature=1,
+#         num_return_sequences=1,
+#         top_k=50,
+#         top_p=0.9,
+#         max_new_tokens=2048,
+#         eos_token_id=tokenizer.eos_token_id,
+#         pad_token_id=tokenizer.pad_token_id
+#     )
+    
+#     answer = tokenizer.batch_decode(outputs, skip_special_tokens=True)[0]
+    
+#     # Trích xuất phần sau "### Trả lời:" và loại bỏ khoảng trắng dư thừa
+#     key_sentences = answer.split("### Trả lời:")[1].strip()
+    
+#     return key_sentences
+
+
+# Đăng nhập vào Hugging Face với mã thông báo của bạn
+login(token="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")
+
+def generate_answer(query):
+    model_path = "openbmb/MiniCPM-Llama3-V-2_5"  # Thay đổi đường dẫn mô hình thành Llama 2.5
+    
+    # Tạo cấu hình cho mô hình
+    config = AutoConfig.from_pretrained(model_path, trust_remote_code=True)  
+    config.init_device = "cuda"  # Chỉ định sử dụng GPU
+
+    # Tải mô hình Llama 2.5
+    model = AutoModelForCausalLM.from_pretrained(model_path, config=config, torch_dtype=torch.float16, trust_remote_code=True)
+    
+    # Tải tokenizer cho mô hình
+    tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)  
+
+    # Tạo prompt cho mô hình
+    instruction = f"\n{query}"
+    PROMPT_TEMPLATE = f"### Câu hỏi: {instruction} \n### Trả lời:"
+    
+    input_prompt = PROMPT_TEMPLATE.format_map({"instruction": instruction})  
+    input_ids = tokenizer(input_prompt, return_tensors="pt")
+
+    # Tạo phản hồi từ mô hình
+    outputs = model.generate(
+        inputs=input_ids["input_ids"].to("cuda"),
+        attention_mask=input_ids["attention_mask"].to("cuda"),
+        do_sample=True,
+        temperature=1,
+        num_return_sequences=1,
+        top_k=50,
+        top_p=0.9,
+        max_new_tokens=2048,
+        eos_token_id=tokenizer.eos_token_id,
+        pad_token_id=tokenizer.pad_token_id
+    )
+
+    # Giải mã phản hồi từ mô hình
+    answer = tokenizer.batch_decode(outputs, skip_special_tokens=True)[0]
+    
+    # Trích xuất phần sau "### Trả lời:" và loại bỏ khoảng trắng dư thừa
+    key_sentences = answer.split("### Trả lời:")[1].strip()
+    
+    return key_sentences

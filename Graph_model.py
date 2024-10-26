@@ -4,7 +4,7 @@ import networkx as nx
 from transformers import GPT2LMHeadModel, GPT2Tokenizer, AutoModel, AutoTokenizer, AutoModelForCausalLM, AutoConfig
 import torch
 # from ollama_client import generate  
-from huggingface_hub import login
+# from huggingface_hub import logins
 
 
 def build_graph(sentences, model, nlp ):
@@ -210,10 +210,10 @@ def query_related_entities(entity_name, driver):
 
 
 # Đăng nhập vào Hugging Face với mã thông báo của bạn
-login(token="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")
+# login(token="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")
 
 def generate_answer(query):
-    model_path = "openbmb/MiniCPM-Llama3-V-2_5"  # Thay đổi đường dẫn mô hình thành Llama 2.5
+    model_path = "vinai/PhoGPT-4B-Chat"  # Thay đổi đường dẫn mô hình thành Llama 2.5
     
     # Tạo cấu hình cho mô hình
     config = AutoConfig.from_pretrained(model_path, trust_remote_code=True)  

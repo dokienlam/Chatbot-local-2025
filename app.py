@@ -8,6 +8,7 @@ import time
 from Deployment_Graph import main
 import warnings
 warnings.filterwarnings("ignore")
+import json
 
 from pydub import AudioSegment
 from io import BytesIO
@@ -50,69 +51,6 @@ def process_message():
     
     return response_json
 
-# def upload_audio():
-#     # Kiểm tra sự tồn tại của tệp âm thanh trong yêu cầu
-#     if 'audio' not in request.files or request.files['audio'].filename == '':
-#         return jsonify({'error': 'No audio file uploaded or no selected file.'}), 400
-
-#     # Đọc tệp âm thanh và chuyển đổi sang WAV trong bộ nhớ
-#     audio_file = request.files['audio']
-#     audio = AudioSegment.from_file(BytesIO(audio_file.read()))
-#     wav_io = BytesIO()
-#     audio.export(wav_io, format='wav')
-#     wav_io.seek(0)
-
-#     # Chuyển đổi WAV sang văn bản
-#     recognizer = sr.Recognizer()
-#     with sr.AudioFile(wav_io) as source:
-#         audio_data = recognizer.record(source)
-#         text = recognizer.recognize_google(audio_data, language='vi-VN')
-#         print(f'Nhận diện được văn bản: {text}')  # In ra console để kiểm tra
-
-#     # Trả về phản hồi JSON cho client
-#     response_json = jsonify({'response': text})
-#     response_json.headers['Content-Type'] = 'application/json; charset=utf-8'
-    
-#     return response_json
-
-
-
-
-# @app.route('/outputs', methods=['POST'])
-# def upload_audio():
-#     if 'audio' not in request.files:
-#         return jsonify({'error': 'No audio file uploaded.'}), 400
-
-#     audio_file = request.files['audio']
-#     if audio_file.filename == '':
-#         return jsonify({'error': 'No selected file.'}), 400
-
-#     # Đọc file audio trực tiếp từ request mà không lưu vào thư mục
-#     try:
-#         # Chuyển đổi file audio sang WAV trong bộ nhớ
-#         audio = AudioSegment.from_file(BytesIO(audio_file.read()))
-#         wav_io = BytesIO()
-#         audio.export(wav_io, format='wav')  # Xuất file dưới định dạng WAV vào bộ nhớ
-#         wav_io.seek(0)  # Đặt con trỏ về vị trí đầu của file
-
-#         # Chuyển đổi file WAV sang văn bản
-#         recognizer = sr.Recognizer()
-#         with sr.AudioFile(wav_io) as source:
-#             audio_data = recognizer.record(source)  # Đọc toàn bộ nội dung file
-#             try:
-#                 text = recognizer.recognize_google(audio_data, language='vi-VN')  # Chuyển đổi giọng nói thành văn bản
-#                 print(f'Nhận diện được văn bản: {text}')  # In ra console để kiểm tra
-#                 return jsonify({'text': text})  # Trả về văn bản đã nhận diện
-#             except sr.UnknownValueError:
-#                 return jsonify({'error': 'Could not understand audio'}), 400
-#             except sr.RequestError as e:
-#                 return jsonify({'error': f'Request error: {e}'}), 500
-
-#     except Exception as e:
-#         return jsonify({'error': f'Failed to process audio: {e}'}), 500
-
-
-
 @app.route('/outputs', methods=['POST'])
 def upload_audio():
     # Kiểm tra sự tồn tại của tệp âm thanh trong yêu cầu
@@ -133,12 +71,19 @@ def upload_audio():
         text = recognizer.recognize_google(audio_data, language='vi-VN')
         print(f'Nhận diện được văn bản: {text}')  # In ra console để kiểm tra
 
+    response = main(text)
+    response = {"responese": response}
+    with open(r"C:\Users\ADMIN\Documents\GitHub\Chatbot-local-2025\static\js\responses.json", "w", encoding="utf-8") as json_file:
+        json.dump(response, json_file, ensure_ascii=False, indent=4)
+    
+    return response
     
 # Trả về phản hồi JSON cho client
-    response_json = jsonify({'response': text})
-    response_json.headers['Content-Type'] = 'application/json; charset=utf-8'
+
+    # response_json = jsonify({'response': response})
+    # response_json.headers['Content-Type'] = 'application/json; charset=utf-8'
     
-    return response_json
+    # return response_json
 
 
 

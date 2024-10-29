@@ -18,3 +18,8 @@ pymilvus
 neo4j
 openai
 spacy
+
+
+SpeechRecognition
+pydub
+torchvision

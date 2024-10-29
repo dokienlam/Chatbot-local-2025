@@ -9,7 +9,7 @@ def split_sentences(document_text):
 #     length_function=len,
 #     is_separator_regex=False,
 #     )
-    text_splitter = CharacterTextSplitter(separator='.', chunk_size=300, chunk_overlap=50)
+    text_splitter = CharacterTextSplitter(separator='.', chunk_size=557, chunk_overlap=0)
     sentences = text_splitter.split_text(document_text)
     return [s.strip() for s in sentences if s.strip()]
     

@@ -5,7 +5,8 @@ from datetime import datetime
 import speech_recognition as sr
 # import soundfile
 import time
-from Deployment_Graph import main
+# from Deployment_Graph import main, main2
+from Deployment_RAG import *
 import warnings
 warnings.filterwarnings("ignore")
 import json
@@ -17,10 +18,10 @@ from io import BytesIO
 app = Flask(__name__)
 app.secret_key = "Lamii"
 
-DATA_DIR = "data/"
-CHROMA_PATH = "chroma/"
-llm_model = 'llama3.1'
-embeddings_model = 'nomic-embed-text'
+# DATA_DIR = "data/"
+# CHROMA_PATH = "chroma/"
+# llm_model = 'llama3.1'
+# embeddings_model = 'nomic-embed-text'
 
 # main_app = MainApp(DATA_DIR, CHROMA_PATH, llm_model, embeddings_model)
 
@@ -30,6 +31,8 @@ app.config['UPLOAD_FOLDER'] = OUTPUT_FOLDER
 
 os.makedirs(INPUT_FOLDER, exist_ok=True)
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+main2()
+
 
 @app.route('/')
 def upload_form():
@@ -184,3 +187,4 @@ def download_file(filename):
 
 if __name__ == '__main__':
     app.run(debug=True)
+

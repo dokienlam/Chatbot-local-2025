@@ -1,8 +1,8 @@
 from neo4j import GraphDatabase
 
-uri = 'bolt://54.89.88.58:7687'
+uri = 'bolt://44.200.216.167:7687'
 username = "neo4j"  
-password = "macros-lens-subprograms"
+password = "snap-anthems-incentives"
 
 driver = GraphDatabase.driver(uri, auth=(username, password))
 

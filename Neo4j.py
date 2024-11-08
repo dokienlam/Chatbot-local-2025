@@ -4,7 +4,7 @@ uri = 'bolt://44.200.216.167:7687'
 username = "neo4j"  
 password = "snap-anthems-incentives"
 
-driver = GraphDatabase.driver(uri, auth=(username, password))
+driver = GraphDatabase.driver(uri, auth=(username, password), )
 
 # def add_to_neo4j(graph, driver):
 #     with driver.session() as session:

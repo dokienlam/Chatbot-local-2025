@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 import speech_recognition as sr
 import time
-from Deployment_Graph import main, main2
+# from Deployment_Graph import main, main2
 from Deployment_RAG import *
 import warnings
 warnings.filterwarnings("ignore")

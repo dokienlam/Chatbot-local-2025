@@ -51,33 +51,7 @@ def dpr_search_main(query, driver, model=SentenceTransformer('sentence-transform
     dpr_scores = dpr_search(query, sentences, model)
     best_idx = dpr_scores.argmax()
     return sentences[best_idx], dpr_scores[best_idx].item()
-# def generate_answer(query, context):
-#     tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
-#     model = GPT2LMHeadModel.from_pretrained('gpt2')
 
-#     if tokenizer.pad_token is None:
-#         tokenizer.pad_token = tokenizer.eos_token
-    
-#     input_text = f"Query: {query} \nDocument: {context} \nAnswer:"
-    
-#     inputs = tokenizer(input_text, return_tensors='pt', truncation=True, padding='longest')
-    
-#     outputs = model.generate(
-#         input_ids=inputs['input_ids'],
-#         attention_mask=inputs['attention_mask'],
-#         max_length=100,   
-#         num_return_sequences=1,
-#         pad_token_id=tokenizer.pad_token_id,
-#         do_sample = True, 
-#         temperature=0.1,   
-#         top_k=1,          
-#         top_p=0.1,   
-#     )
-#     answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
-#     key_sentences = answer.split("Answer:")[-1].strip()
-#     return answer.strip(), key_sentences
-    
-#------------------------------------ RAG 
 def generate_answer(query, best_entity_name):
     model_path = "vinai/PhoGPT-4B-Chat"  
     
@@ -89,7 +63,6 @@ def generate_answer(query, best_entity_name):
     tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)  
     
     instruction = f"\n###Câu hỏi: {query} \n ###Tài liệu: {best_entity_name}" 
-    # instruction = f"{query}" 
 
     PROMPT_TEMPLATE = f"### Câu hỏi: {instruction} \n### Trả lời:"
     
@@ -111,49 +84,8 @@ def generate_answer(query, best_entity_name):
     
     answer = tokenizer.batch_decode(outputs, skip_special_tokens=True)[0]
     
-    # Trích xuất phần sau "### Trả lời:" và loại bỏ khoảng trắng dư thừa
     key_sentences = answer.split("### Trả lời:")[1].strip()
     
     return key_sentences
 
 
-#----------------------------------------Chatbot
-
-
-# def generate_answer(query, best_entity_name):
-#     model_path = "vinai/PhoGPT-4B-Chat"  
-    
-#     config = AutoConfig.from_pretrained(model_path, trust_remote_code=True)  
-#     config.init_device = "cuda"
-    
-#     model = AutoModelForCausalLM.from_pretrained(model_path, config=config, torch_dtype=torch.float16, trust_remote_code=True)
-    
-#     tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)  
-    
-#     # instruction = f"\n###Câu hỏi: {query} \n ###Tài liệu: {best_entity_name}" 
-#     instruction = f"{query}" 
-
-#     PROMPT_TEMPLATE = f"### Câu hỏi: {instruction} \n### Trả lời:"
-    
-#     input_prompt = PROMPT_TEMPLATE.format_map({"instruction": instruction})  
-#     input_ids = tokenizer(input_prompt, return_tensors="pt")
-    
-#     outputs = model.generate(
-#         inputs=input_ids["input_ids"].to("cuda"),
-#         attention_mask=input_ids["attention_mask"].to("cuda"),
-#         do_sample=True,
-#         temperature=1,
-#         num_return_sequences=1,
-#         top_k=50,
-#         top_p=0.9,
-#         max_new_tokens=2048,
-#         eos_token_id=tokenizer.eos_token_id,
-#         pad_token_id=tokenizer.pad_token_id
-#     )
-    
-#     answer = tokenizer.batch_decode(outputs, skip_special_tokens=True)[0]
-    
-#     # Trích xuất phần sau "### Trả lời:" và loại bỏ khoảng trắng dư thừa
-#     key_sentences = answer.split("### Trả lời:")[1].strip()
-    
-#     return key_sentences
